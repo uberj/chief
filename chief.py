@@ -11,6 +11,14 @@ from flask import Flask, Response, abort, request, render_template
 import settings
 from forms import DeployForm, LoadtestForm
 
+if settings.DEV:
+    def url(url):
+        # On production sites apache strips '/chief' from the url via re-write
+        # rule. In dev we need to simulate this.
+        return '/chief' + url
+else:
+    def url(url):
+        return url
 
 app = Flask(__name__)
 
@@ -29,7 +37,7 @@ def do_update(app_name, app_settings, webapp_ref, who):
     log_file = os.path.join(log_dir, log_name)
 
     def run(task, output):
-        subprocess.check_call(['commander', deploy, task],
+        subprocess.check_call([settings.COMMANDER, deploy, task],
                               stdout=output, stderr=output)
 
     def pub(event):
@@ -85,7 +93,7 @@ def do_loadtest(app_name, app_settings, repo):
     yield 'Submitting loadtest: %s\n'  % repo
     try:
         output = open(log_file, 'w')
-        subprocess.check_call(['commander', deploy, 
+        subprocess.check_call([settings.COMMANDER, deploy, 
                                'loadtest:%s' % repo], stdout=output, 
                               stderr=output)
         yield 'Done!'
@@ -93,17 +101,18 @@ def do_loadtest(app_name, app_settings, repo):
         yield 'Error, check logs!'
         raise
 
-@app.route("/")
+@app.route(url("/"))
 def hello():
     webapps = settings.WEBAPPS
     return render_template("webapp_list.html", web_apps = webapps, server_name = servername)
 
-@app.route("/<webapp>", methods=['GET', 'POST'])
+@app.route(url("/<webapp>"), methods=['GET', 'POST'])
 def index(webapp):
     if webapp not in settings.WEBAPPS.keys():
         abort(404)
     else:
         app_settings = settings.WEBAPPS[webapp]
+
 
     errors = []
     form = DeployForm(request.form)
@@ -119,7 +128,7 @@ def index(webapp):
     return render_template("index.html", app_name=webapp,
                            form=form, errors=errors)
 
-@app.route("/<webapp>/history", methods=['GET'])
+@app.route(url("/<webapp>/history"), methods=['GET'])
 def history(webapp):
     if webapp not in settings.WEBAPPS.keys():
         abort(404)
@@ -129,7 +138,7 @@ def history(webapp):
     return render_template("history.html", app_name=webapp,
                            results=results)
 
-@app.route("/<webapp>/loadtest", methods=['GET', 'POST'])
+@app.route(url("/<webapp>/loadtest"), methods=['GET', 'POST'])
 def loadtest(webapp):
     if webapp not in settings.WEBAPPS.keys():
         abort(404)

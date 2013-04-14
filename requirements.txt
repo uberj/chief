@@ -2,3 +2,4 @@ Flask
 gunicorn
 redis
 WTForms
+flask-script

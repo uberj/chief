@@ -22,3 +22,6 @@ REDIS_BACKENDS = {
         'socket_timeout': 0.1,
     },
 }
+
+DEV = False
+COMMANDER = 'commander' #path to commander
